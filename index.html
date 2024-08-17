@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Tenis Perfeccionado</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a2e;
+            font-family: 'Arial', sans-serif;
+            color: #ffffff;
+        }
+        #gameWrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            background-color: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            margin-top: 20px;
+        }
+        .paddle {
+            position: absolute;
+            width: 15px;
+            height: 100px;
+            background-color: #e94560;
+            border-radius: 7px;
+            transition: top 0.1s ease;
+        }
+        #player1 {
+            left: 20px;
+        }
+        #player2 {
+            right: 20px;
+        }
+        #ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #fdfdfd;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #fdfdfd;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #0f3460;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s, transform 0.1s;
+            margin: 0 10px;
+        }
+        .button:hover {
+            background-color: #e94560;
+            transform: scale(1.05);
+        }
+        #winner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            background-color: rgba(15, 52, 96, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        .playerName {
+            position: absolute;
+            bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        #player1Name {
+            left: 20px;
+        }
+        #player2Name {
+            right: 20px;
+        }
+        #controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #controls input {
+            margin: 0 10px;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #0f3460;
+            color: white;
+        }
+        #controls input::placeholder {
+            color: #a0a0a0;
+        }
+        .net {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #ffffff;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameWrapper">
+        <div id="controls">
+            <input type="text" id="player1Input" placeholder="Nombre Jugador 1">
+            <button id="startButton" class="button">Iniciar Juego</button>
+            <button id="resetButton" class="button">Reiniciar Juego</button>
+            <input type="text" id="player2Input" placeholder="Nombre Jugador 2">
+        </div>
+        <div id="gameContainer">
+            <div id="player1" class="paddle"></div>
+            <div id="player2" class="paddle"></div>
+            <div id="ball"></div>
+            <div class="net"></div>
+            <div id="score">0 - 0</div>
+            <div id="winner"></div>
+            <div id="player1Name" class="playerName">Jugador 1</div>
+            <div id="player2Name" class="playerName">Jugador 2</div>
+        </div>
+    </div>
+
+    <script>
+        const player1 = document.getElementById('player1');
+        const player2 = document.getElementById('player2');
+        const ball = document.getElementById('ball');
+        const scoreElement = document.getElementById('score');
+        const winnerElement = document.getElementById('winner');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const gameContainer = document.getElementById('gameContainer');
+        const player1NameElement = document.getElementById('player1Name');
+        const player2NameElement = document.getElementById('player2Name');
+        const player1Input = document.getElementById('player1Input');
+        const player2Input = document.getElementById('player2Input');
+
+        let player1Y = 150;
+        let player2Y = 150;
+        let ballX = 390;
+        let ballY = 190;
+        let ballSpeedX = 5;
+        let ballSpeedY = 5;
+        let player1Score = 0;
+        let player2Score = 0;
+        let gameInterval;
+        let gameStarted = false;
+        let keys = {};
+
+        function updateGame() {
+            // Mover las paletas
+            if (keys['w'] && player1Y > 0) player1Y -= 5;
+            if (keys['s'] && player1Y < 300) player1Y += 5;
+            if (keys['ArrowUp'] && player2Y > 0) player2Y -= 5;
+            if (keys['ArrowDown'] && player2Y < 300) player2Y += 5;
+
+            // Mover la pelota
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Rebotar en las paredes superior e inferior
+            if (ballY <= 0 || ballY >= 380) {
+                ballSpeedY = -ballSpeedY;
+            }
+
+            // Colisión con las paletas
+            if (
+                (ballX <= 35 && ballY > player1Y - 10 && ballY < player1Y + 110) ||
+                (ballX >= 755 && ballY > player2Y - 10 && ballY < player2Y + 110)
+            ) {
+                ballSpeedX = -ballSpeedX;
+                ballSpeedX *= 1.05; // Aumentar la velocidad
+                ballSpeedY *= 1.05; // Aumentar la velocidad
+                // Añadir un poco de ángulo basado en dónde golpea la pelota en la paleta
+                let deltaY = (ballY - (player1Y + 50)) / 100;
+                ballSpeedY += deltaY * 2;
+            }
+
+            // Mantener la velocidad de la pelota dentro de límites razonables
+            let maxSpeed = 15;
+            let speed = Math.sqrt(ballSpeedX * ballSpeedX + ballSpeedY * ballSpeedY);
+            if (speed > maxSpeed) {
+                ballSpeedX = (ballSpeedX / speed) * maxSpeed;
+                ballSpeedY = (ballSpeedY / speed) * maxSpeed;
+            }
+
+            // Puntuación
+            if (ballX <= 0) {
+                player2Score++;
+                resetBall();
+            } else if (ballX >= 780) {
+                player1Score++;
+                resetBall();
+            }
+
+            // Actualizar posiciones
+            ball.style.left = ballX + 'px';
+            ball.style.top = ballY + 'px';
+            player1.style.top = player1Y + 'px';
+            player2.style.top = player2Y + 'px';
+
+            // Actualizar marcador
+            scoreElement.textContent = `${player1Score} - ${player2Score}`;
+
+            // Verificar ganador
+            if (player1Score === 7 || player2Score === 7) {
+                endGame();
+            }
+        }
+
+        function resetBall() {
+            ballX = 390;
+            ballY = 190;
+            ballSpeedX = 5 * (Math.random() > 0.5 ? 1 : -1);
+            ballSpeedY = 5 * (Math.random() > 0.5 ? 1 : -1);
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            gameStarted = false;
+            const winner = player1Score === 7 ? player1NameElement.textContent : player2NameElement.textContent;
+            winnerElement.textContent = `¡Felicidades ${winner}! Has ganado.`;
+            winnerElement.style.display = 'block';
+            startButton.style.display = 'inline-block';
+            resetButton.style.display = 'inline-block';
+        }
+
+        function startGame() {
+            if (!gameStarted) {
+                player1Score = 0;
+                player2Score = 0;
+                resetBall();
+                winnerElement.style.display = 'none';
+                gameStarted = true;
+                gameInterval = setInterval(updateGame, 1000 / 60); // 60 FPS
+
+                // Actualizar nombres de jugadores
+                player1NameElement.textContent = player1Input.value || "Jugador 1";
+                player2NameElement.textContent = player2Input.value || "Jugador 2";
+            }
+        }
+
+        function resetGame() {
+            clearInterval(gameInterval);
+            gameStarted = false;
+            player1Score = 0;
+            player2Score = 0;
+            player1Y = 150;
+            player2Y = 150;
+            resetBall();
+            scoreElement.textContent = "0 - 0";
+            winnerElement.style.display = 'none';
+            player1.style.top = player1Y + 'px';
+            player2.style.top = player2Y + 'px';
+            ball.style.left = ballX + 'px';
+            ball.style.top = ballY + 'px';
+        }
+
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+    </script>
+</body>
+</html>
